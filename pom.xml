@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Deliberately not io.github.lukepopwell (matching the actual Java package name below).
+       Sonatype Central's namespace verification is tied to the exact GitHub username string,
+       hyphen included: io.github.luke-popwell, confirmed directly against the account's own
+       Namespaces page in Central Portal rather than assumed. groupId and the root Java package
+       don't have to be the same string (Maven doesn't enforce that, just convention), so this
+       is the one deliberate place they diverge: the package itself stays io.github.lukepopwell
+       since Java identifiers can't contain a hyphen at all. -->
+  <groupId>io.github.luke-popwell</groupId>
+  <artifactId>tracker</artifactId>
+  <version>0.16.0</version>
+  <packaging>jar</packaging>
+
+  <name>ForgeOps Tracker</name>
+  <description>
+    Java error reporting client for ForgeOps. A
+    from-scratch port of gems/forge_ops_tracker (the Rails client), with Servlet and Spring
+    integrations. Zero required runtime dependencies: Servlet/Spring are compile-time only
+    (provided scope), same role peerDependencies play in the Node client.
+  </description>
+  <url>https://getforgeops.net</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>forgeops</id>
+      <name>ForgeOps</name>
+      <url>https://getforgeops.net</url>
+    </developer>
+  </developers>
+
+  <!-- The public read-only mirror of this directory (see script/release_sdks_lib/mirror.rb). -->
+  <scm>
+    <connection>scm:git:https://github.com/Luke-Popwell/forge-ops-tracker-java.git</connection>
+    <developerConnection>scm:git:https://github.com/Luke-Popwell/forge-ops-tracker-java.git</developerConnection>
+    <url>https://github.com/Luke-Popwell/forge-ops-tracker-java</url>
+  </scm>
+
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <junit.version>5.11.3</junit.version>
+  </properties>
+
+  <dependencies>
+    <!-- Compile-time only, for the optional Servlet filter integration: a consuming app
+         brings its own Servlet container/API version; never bundled into this library's jar,
+         same reasoning as peerDependencies in the Node client and require-dev in the PHP one. -->
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <version>6.0.0</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Compile-time only, for the optional Spring MVC integration. -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <version>6.1.14</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Compile-time only, for the optional Spring MVC user-context integration
+         (ForgeOpsTrackerUserContextInterceptor): only needed by an app that has Spring Security on
+         its own classpath in the first place; never bundled into this library's jar, same
+         reasoning as spring-webmvc above. -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-core</artifactId>
+      <version>6.3.4</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Test-only: the Servlet/Spring integrations take interface-heavy framework types
+         (HttpServletRequest, HandlerExceptionResolver's arguments) as parameters that are
+         impractical to hand-write fakes for: the same role PHPUnit's createMock() plays for
+         the PHP client's own integration tests. -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>5.14.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+      </plugin>
+      <plugin>
+        <!-- Checkstyle acts as the linter here, the same role rubocop/ruff/php-cs-fixer/eslint
+             play for the other four clients. checkstyle.xml (repo-local, not google_checks.xml)
+             explains why it's trimmed down from Checkstyle's own default ruleset. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.6.0</version>
+        <configuration>
+          <configLocation>checkstyle.xml</configLocation>
+          <violationSeverity>warning</violationSeverity>
+          <linkXRef>false</linkXRef>
+        </configuration>
+      </plugin>
+      <plugin>
+        <!-- Publishes to Maven Central via the Central Portal (Sonatype's current publishing
+             platform, replacing the old OSSRH/Nexus staging flow). publishingServerId "central"
+             refers to a <server> with that id in the local ~/.m2/settings.xml, holding a Central
+             Portal user token: not present in this environment, so nothing here can actually
+             authenticate yet. autoPublish is false on purpose, since a real `mvn deploy` only
+             uploads and validates the bundle; it does not release it to Central automatically,
+             that still needs a deliberate follow-up (either the Central Portal UI, or this
+             plugin's own publish goal against an already-uploaded deployment). -->
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <version>0.11.0</version>
+        <extensions>true</extensions>
+        <configuration>
+          <publishingServerId>central</publishingServerId>
+          <autoPublish>false</autoPublish>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <!-- Release-only tooling lives behind this profile, not in the main <build>, so a normal
+       `mvn test`/`mvn package` during development never builds a javadoc jar or attempts to
+       sign anything: both of those only make sense, and only need to work, right before a
+       real Central upload. Activate with `-Drelease=true` (or `-P release`) once GPG keys and
+       Central Portal credentials actually exist. -->
+  <profiles>
+    <profile>
+      <id>release</id>
+      <activation>
+        <property>
+          <name>release</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <!-- Central requires a sources jar alongside the main jar for every artifact. -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.3.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals><goal>jar-no-fork</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <!-- Central requires a javadoc jar alongside the main jar for every artifact. -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.11.1</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals><goal>jar</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+          <!-- Central requires every uploaded artifact to be GPG-signed. Needs a real key on
+               the signer's keyring plus (if the key has a passphrase) gpg.passphrase set in
+               settings.xml: neither exists in this environment, so this only runs, and only
+               needs to work, once `-Drelease=true` is actually passed. -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.7</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals><goal>sign</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

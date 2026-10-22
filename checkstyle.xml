@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  A trimmed-down version of Checkstyle's own google_checks.xml: keeps the checks that catch real
+  mistakes (unused imports, wildcard imports, unused code, brace/whitespace consistency, line
+  length) and drops google_checks' blanket "every public method needs a Javadoc comment"
+  requirement. This codebase documents intent through class-level and inline comments where
+  something is non-obvious (matching the Ruby/Python/PHP/Node clients' own commenting style, none
+  of which doc-comment every single method either) rather than a Javadoc tag on every method
+  regardless of whether it needs one.
+-->
+<module name="Checker">
+  <property name="charset" value="UTF-8"/>
+  <property name="severity" value="warning"/>
+
+  <module name="LineLength">
+    <property name="max" value="120"/>
+    <property name="ignorePattern" value="^import .*$"/>
+  </module>
+
+  <module name="TreeWalker">
+    <module name="UnusedImports"/>
+    <module name="RedundantImport"/>
+    <module name="AvoidStarImport"/>
+    <module name="EqualsHashCode"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    <module name="RedundantModifier"/>
+    <module name="UnusedLocalVariable"/>
+    <module name="NeedBraces"/>
+    <module name="LeftCurly"/>
+    <module name="RightCurly"/>
+  </module>
+</module>
