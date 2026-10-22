@@ -14,7 +14,7 @@ caught exceptions explicitly, and scrubs likely personal data before anything le
 <dependency>
   <groupId>io.github.luke-popwell</groupId>
   <artifactId>tracker</artifactId>
-  <version>0.16.0</version>
+  <version>0.16.1</version>
 </dependency>
 ```
 

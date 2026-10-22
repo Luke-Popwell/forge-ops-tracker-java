@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.1 (2026-10-22)
+
+- The README says what strict privacy does in its opening lines.
+- The source is public at https://github.com/Luke-Popwell/forge-ops-tracker-java, and the package links to it.
+
 ## 0.16.0 (2026-10-20)
 
 - Strict privacy: a raw path now keeps only its first segment, instead of only losing its digit segments, since a later segment can name a person even without a digit (`/patients/janedoe`). `GET /patients/jane-doe/12` is sent as `GET /patients/:path`, `/42/edit` as `/:id/:path`. A route template (any segment such as `:id`, `{id}`, `<int:id>`, `[slug]` or `*path`) is kept as it is, so `GET /v1/orders/{id}` is no longer sent as `GET /:id/orders/{id}`. Applies to span names and transaction names (events and performance samples), the same rule the server applies. New `StrictPrivacy.strictPath`; `pathWithoutIds` still works and now calls it.
