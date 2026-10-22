@@ -28,6 +28,11 @@ public final class StrictPrivacy {
   static final int FINGERPRINT_LENGTH = 32;
 
   private static final String WORD = "A-Za-z0-9_";
+  private static final Pattern EMAIL = Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}");
+  // A quoted value (KeyError: 'Jane Doe') is data, not the shape of the error. Single quotes only open
+  // and close at a word boundary, so a contraction (Couldn't) or the `email' style never starts one.
+  private static final Pattern DOUBLE_QUOTED = Pattern.compile("\"[^\"\\r\\n]*\"");
+  private static final Pattern SINGLE_QUOTED = Pattern.compile("(?<![" + WORD + "])'[^'\\r\\n]*'(?![" + WORD + "])");
   private static final Pattern HEX_OBJECT_ID = Pattern.compile("0x[0-9a-fA-F]{4,}");
   private static final Pattern UUID = Pattern.compile("(?<![" + WORD + "])[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
       + "-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?![" + WORD + "])");
@@ -47,11 +52,14 @@ public final class StrictPrivacy {
   private StrictPrivacy() {}
 
   /**
-   * The message with hex object ids, UUIDs and standalone numbers replaced, in that order; a
-   * {@code null} message is {@code ""}.
+   * The message with emails, quoted values, hex object ids, UUIDs and standalone numbers replaced,
+   * in that order; a {@code null} message is {@code ""}.
    */
   public static String normalizeMessage(String message) {
     String normalized = message == null ? "" : message;
+    normalized = EMAIL.matcher(normalized).replaceAll("<email>");
+    normalized = DOUBLE_QUOTED.matcher(normalized).replaceAll("<str>");
+    normalized = SINGLE_QUOTED.matcher(normalized).replaceAll("<str>");
     normalized = HEX_OBJECT_ID.matcher(normalized).replaceAll("0x");
     normalized = UUID.matcher(normalized).replaceAll("<uuid>");
     return NUMBER.matcher(normalized).replaceAll("<n>");
