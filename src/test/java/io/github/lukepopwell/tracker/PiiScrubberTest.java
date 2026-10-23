@@ -1,7 +1,11 @@
 package io.github.lukepopwell.tracker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,5 +80,37 @@ class PiiScrubberTest {
   void nonStringValuesPassThroughUnscrubbedUnlessKeyIsSensitive() {
     assertEquals(42, PiiScrubber.scrub(42, "count"));
     assertEquals("[FILTERED]", PiiScrubber.scrub(42, "apiToken"));
+  }
+
+  // pii_scrubbing_vectors.json is a byte-identical copy of sdks/pii_scrubbing_vectors.json,
+  // generated from the server's own PiiScrubber: see sdks/PII_SCRUBBING.md.
+  @SuppressWarnings("unchecked")
+  private static List<Map<String, Object>> vectors(String kind) throws IOException {
+    try (InputStream in = PiiScrubberTest.class.getResourceAsStream("/pii_scrubbing_vectors.json")) {
+      String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+      Map<String, Object> all = (Map<String, Object>) new StrictPrivacyTest.JsonReader(json).read();
+      return (List<Map<String, Object>>) all.get(kind);
+    }
+  }
+
+  @Test
+  void scrubsCardNumbersAndIbansInEveryVectorExactlyAsTheServerDoes() throws IOException {
+    List<Map<String, Object>> vectors = vectors("strings");
+    assertFalse(vectors.isEmpty());
+    for (Map<String, Object> vector : vectors) {
+      assertEquals(vector.get("scrubbed"), PiiScrubber.scrub(vector.get("input")), (String) vector.get("input"));
+    }
+  }
+
+  @Test
+  void redactsBankDetailKeysInEveryVectorExactlyAsTheServerDoes() throws IOException {
+    List<Map<String, Object>> vectors = vectors("keys");
+    assertFalse(vectors.isEmpty());
+    for (Map<String, Object> vector : vectors) {
+      String key = (String) vector.get("key");
+      @SuppressWarnings("unchecked")
+      Map<String, Object> result = (Map<String, Object>) PiiScrubber.scrub(Map.of(key, "x"));
+      assertEquals(Boolean.TRUE.equals(vector.get("redacted")) ? "[FILTERED]" : "x", result.get(key), key);
+    }
   }
 }

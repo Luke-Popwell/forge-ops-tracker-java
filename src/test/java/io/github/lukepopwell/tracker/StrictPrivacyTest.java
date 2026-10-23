@@ -278,8 +278,11 @@ class StrictPrivacyTest {
     }
   }
 
-  /** Just enough JSON for the vectors file: objects, arrays, strings and the escapes it uses. */
-  private static final class JsonReader {
+  /**
+   * Just enough JSON for the vectors files: objects, arrays, strings and the escapes they use, and
+   * booleans. Also read by {@link PiiScrubberTest}.
+   */
+  static final class JsonReader {
     private final String json;
     private int at;
 
@@ -351,6 +354,14 @@ class StrictPrivacyTest {
         }
         at++;
         return out.toString();
+      }
+      if (json.startsWith("true", at)) {
+        at += 4;
+        return Boolean.TRUE;
+      }
+      if (json.startsWith("false", at)) {
+        at += 5;
+        return Boolean.FALSE;
       }
       throw new IllegalArgumentException("unexpected JSON at " + at);
     }
